@@ -39,7 +39,7 @@ Using swarm
 * Add swarm as a rebar dependency:
 
 ```erlang
-  {swarm, ".*", {git, "file:///Users/jbarrett/dev/swarm", {branch, "master"}}}
+  {swarm, ".*", {git, "https://github.com/jeremey/swarm.git", {branch, "master"}}}
 ```
 
 * Start the application
