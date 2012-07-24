@@ -32,6 +32,7 @@
 
 -include("../include/swarm.hrl").
 
+
 connect(Host, Port, Opts, Timeout) ->
     gen_tcp:connect(Host, Port,
                     Opts ++ [binary, {active, false}, {packet, raw}], Timeout).

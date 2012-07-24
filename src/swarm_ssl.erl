@@ -30,9 +30,8 @@
 -export([setopts/2, controlling_process/2, peername/1, sockname/1]).
 -export([subject_name/1, dn/1]).
 
--include_lib("public_key/include/public_key.hrl"). 
-
 -include("../include/swarm.hrl").
+
 
 connect(Host, Port, Opts, Timeout) ->
     ssl:connect(Host, Port,
@@ -86,19 +85,16 @@ sockname(Socket) ->
     ssl:sockname(Socket).
 
 subject_name(Socket) ->
-    case ssl:peercert(Socket) of
-        {ok, DER} ->
-            get_subject_name(DER);
-        _ -> <<>>
-    end.
+    swarm_x509:dn_oneline(dn(Socket)).
 
 dn(Socket) ->
     case ssl:peercert(Socket) of
         {ok, DER} ->
-            get_dn_record(DER);
+            swarm_x509:dn_record(DER);
         _ ->
             #swarm_dn{}
     end.
+
 
 
 %% Internal ssl:ssl_accept wrapper
@@ -110,89 +106,4 @@ ssl_accept(Socket, Timeout) ->
         {error, Reason} ->
             {error, Reason}
     end.
-
-
-%% X.509/PKIX parsing
-
-get_dn_record(DER) ->
-    Cert = public_key:pkix_decode_cert(DER, otp),
-    OTPCert = Cert#'OTPCertificate'.tbsCertificate,
-    get_dn_parts(OTPCert#'OTPTBSCertificate'.subject).
-
-get_dn_parts(Part) ->
-    {rdnSequence, Parts} = Part,
-    get_dn_parts(Parts, #swarm_dn{}).
-
-get_dn_parts([H|T], Record) ->
-    R1 = get_dn_part(H, Record),
-    get_dn_parts(T, R1).
-
-get_dn_part({'AttributeTypeAndValue', OID, Value}, Record) ->
-    case OID of
-        ?'id-at-countryName' ->
-            Record#swarm_dn{c = Record#swarm_dn.c ++ [dn_string(Value)]};
-        ?'id-at-stateOrProvinceName' ->
-            Record#swarm_dn{st = Record#swarm_dn.st ++ [dn_string(Value)]};
-        ?'id-at-localityName' ->
-            Record#swarm_dn{l = Record#swarm_dn.l ++ [dn_string(Value)]};
-        ?'id-at-organizationName' ->
-            Record#swarm_dn{o = Record#swarm_dn.o ++ [dn_string(Value)]};
-        ?'id-at-commonName' ->
-            Record#swarm_dn{cn = Record#swarm_dn.cn ++ [dn_string(Value)]};
-        ?'id-at-organizationalUnitName' ->
-            Record#swarm_dn{ou = Record#swarm_dn.ou ++ [dn_string(Value)]};
-        ?'id-emailAddress' ->
-            Record#swarm_dn{email = Record#swarm_dn.email ++ [dn_string(Value)]};
-        _ ->
-            Record
-    end.
-    
-
-
-get_subject_name(DER) ->
-    Cert = public_key:pkix_decode_cert(DER, otp),
-    OTPCert = Cert#'OTPCertificate'.tbsCertificate,
-    list_to_binary(name_to_string(OTPCert#'OTPTBSCertificate'.subject)).
-
-name_to_string(DN) ->
-    {rdnSequence, DNParts} = DN,
-    decode_dn_part(DNParts, "").
-
-decode_dn_part([H|T], Acc) ->
-    decode_dn_part(T, decode_dn_part(H, Acc));
-
-decode_dn_part([], Acc) ->
-    Acc;
-
-decode_dn_part({'AttributeTypeAndValue', OID, Value}, Acc) ->
-    Acc ++ "/" ++ oid_name(OID) ++ "=" ++ dn_string(Value);
-
-decode_dn_part(_, Acc) ->
-    Acc.
-
-dn_string({'printableString', S}) ->
-    S;
-dn_string(S) ->
-    S.
-
-oid_name(OID) ->
-    case OID of
-        ?'id-at-countryName' ->
-            "C";
-        ?'id-at-stateOrProvinceName' ->
-            "ST";
-        ?'id-at-localityName' ->
-            "L";
-        ?'id-at-organizationName' ->
-            "O";
-        ?'id-at-commonName' ->
-            "CN";
-        ?'id-at-organizationalUnitName' ->
-            "OU";
-        ?'id-emailAddress' ->
-            "emailAddress";
-        _ ->
-            ""
-    end.
-            
 
