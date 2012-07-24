@@ -38,7 +38,7 @@ dn_record(DER) ->
     get_dn_parts(OTPCert#'OTPTBSCertificate'.subject).
 
 dn_oneline(#swarm_dn{c = C, st = ST, l = L, o = O, ou = OU, cn = CN, email = EM}) ->
-    list_to_binary(interleave(<<",">>, 
+    list_to_binary(interleave(<<"/">>, 
                               [X || [_] = X <- 
                                         [dn_oneline_fmt(c,C),
                                          dn_oneline_fmt(st,ST),
