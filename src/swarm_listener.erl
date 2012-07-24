@@ -25,6 +25,7 @@
 
 -export([start_link/5]).
 
+-include("../include/swarm.hrl").
 
 start_link(Name, AcceptorCount, Transport, TransOpts, {M, F, A}) ->
     Pid = spawn_link(fun() ->
@@ -60,8 +61,15 @@ acceptor(LPid, Name, LSock, Transport, {M, F, A}) ->
     case Transport:accept(LSock) of
         {ok, S} ->
             LPid ! accepted,
-            erlang:apply(M, F, [S, Name, Transport] ++ A);
+            erlang:apply(M, F, [S, Name, Transport, get_info(Transport, S)] ++ A);
         {error, closed} ->
             ok
     end.
 
+
+get_info(Transport, Socket) ->
+    {ok, {Addr, Port}} = Transport:peername(Socket),
+    DN = Transport:dn(Socket),
+    #swarm_info{peer_addr = Addr,
+                peer_port = Port,
+                peer_dn = DN}.

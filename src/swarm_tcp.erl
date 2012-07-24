@@ -28,8 +28,9 @@
 -export([connect/4, listen/1, accept/1, accept/2]).
 -export([recv/3, send/2, close/1]).
 -export([setopts/2, controlling_process/2, peername/1, sockname/1]).
--export([subject_name/1]).
+-export([subject_name/1, dn/1]).
 
+-include("../include/swarm.hrl").
 
 connect(Host, Port, Opts, Timeout) ->
     gen_tcp:connect(Host, Port,
@@ -76,3 +77,6 @@ sockname(Socket) ->
 
 subject_name(_Socket) ->
     <<>>.
+
+dn(_Socket) ->
+    #swarm_dn{}.
