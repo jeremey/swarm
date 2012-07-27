@@ -39,7 +39,7 @@ dn_record(DER) ->
 
 dn_oneline(#swarm_dn{c = C, st = ST, l = L, o = O, ou = OU, cn = CN, email = EM}) ->
     list_to_binary(interleave(<<"/">>, 
-                              [X || [_] = X <- 
+                              [X || [_|_] = X <- 
                                         [dn_oneline_fmt(c,C),
                                          dn_oneline_fmt(st,ST),
                                          dn_oneline_fmt(l,L),
@@ -88,7 +88,7 @@ dn_string(S) ->
 
 
 dn_oneline_fmt(Type, Values) ->
-    interleave(<<",">>, [dn_atom_name(Type) ++ "=" ++ X || X <- Values]).
+    interleave(<<"/">>, [dn_atom_name(Type) ++ "=" ++ X || X <- Values]).
 
 dn_atom_name(Type) ->
     case Type of
