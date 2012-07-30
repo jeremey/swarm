@@ -36,12 +36,15 @@ start_link(Name, AcceptorCount, Transport, TransOpts, {M, F, A}) ->
 
 run(Name, AcceptorCount, Transport, TransOpts, {M, F, A}) ->
     LogModule = swarm:get_env(log_module),
+    
+    %% trap exits
+    process_flag(trap_exit, true),
 
     {ok, LSock} = Transport:listen(TransOpts),
 
     Self = self(),
     SpawnFun = fun() ->
-                       spawn(fun() -> acceptor(Self, Name, LSock, Transport, LogModule, {M, F, A}) end)
+                       spawn_link(fun() -> acceptor(Self, Name, LSock, Transport, LogModule, {M, F, A}) end)
                end,
 
     [SpawnFun() || _X <- lists:seq(1, AcceptorCount)],
@@ -58,6 +61,10 @@ loop(Name, LogModule, SpawnFun, Acceptors, Count) ->
         accepted ->
             SpawnFun(),
             loop(Name, LogModule, SpawnFun, Acceptors, Count-1);
+
+        {'EXIT', FromPid, Reason} ->
+            LogModule:debug("~s child pid ~p died with reason ~p", [Name, FromPid, Reason]),
+            loop(Name, LogModule, SpawnFun, Acceptors, Count);
 
         _ ->
             loop(Name, LogModule, SpawnFun, Acceptors, Count)
