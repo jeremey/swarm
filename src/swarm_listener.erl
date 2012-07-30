@@ -35,35 +35,47 @@ start_link(Name, AcceptorCount, Transport, TransOpts, {M, F, A}) ->
 
 
 run(Name, AcceptorCount, Transport, TransOpts, {M, F, A}) ->
+    LogModule = swarm:get_env(log_module),
+
     {ok, LSock} = Transport:listen(TransOpts),
 
     Self = self(),
     SpawnFun = fun() ->
-                       spawn(fun() -> acceptor(Self, Name, LSock, Transport, {M, F, A}) end)
+                       spawn(fun() -> acceptor(Self, Name, LSock, Transport, LogModule, {M, F, A}) end)
                end,
-    
+
     [SpawnFun() || _X <- lists:seq(1, AcceptorCount)],
 
-    loop(Name, SpawnFun).
+    loop(Name, LogModule, SpawnFun, AcceptorCount, 0).
 
 
-loop(Name, SpawnFun) ->
+loop(Name, LogModule, SpawnFun, Acceptors, Count) ->
+    LogModule:debug("~s acceptors: ~p, count: ~p", [Name, Acceptors, Count]),
     receive
+        listening ->
+            loop(Name, LogModule, SpawnFun, Acceptors, Count+1);
+
         accepted ->
             SpawnFun(),
-            loop(Name, SpawnFun);
+            loop(Name, LogModule, SpawnFun, Acceptors, Count-1);
+
         _ ->
-            loop(Name, SpawnFun)
+            loop(Name, LogModule, SpawnFun, Acceptors, Count)
     end.
 
 
-acceptor(LPid, Name, LSock, Transport, {M, F, A}) ->
+acceptor(LPid, Name, LSock, Transport, LogModule, {M, F, A}) ->
+    LPid ! listening,
     case Transport:accept(LSock) of
         {ok, S} ->
             LPid ! accepted,
             erlang:apply(M, F, [S, Name, Transport, get_info(Transport, S)] ++ A);
         {error, closed} ->
-            ok
+            LogModule:debug("~s Transport:accept received {error, closed}", [Name]),
+            ok;
+        Error ->
+            LogModule:error("~s Transport:accept error ~p", [Name, Error]),
+            Error
     end.
 
 
@@ -73,3 +85,5 @@ get_info(Transport, Socket) ->
     #swarm_info{peer_addr = Addr,
                 peer_port = Port,
                 peer_dn = DN}.
+
+

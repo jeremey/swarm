@@ -21,21 +21,23 @@
 %% WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 %%
 
-{application, swarm,
- [
-  {description, "Fast and simple acceptor pool"},
-  {vsn, "0.1.0"},
-  {registered, []},
-  {applications, [
-                  kernel,
-                  stdlib,
-                  inets,
-                  crypto,
-                  public_key,
-                  ssl
-                 ]},
-  {mod, { swarm_app, []}},
-  {env, [
-         {log_module, swarm_log_none}
-        ]}
- ]}.
+%% NOTE: This module is intended purely for testing / development!
+
+-module(swarm_log_console).
+-compile([export_all]).
+
+critical(Fmt, Args) ->
+    io:format("swarm CRITICAL " ++ Fmt, Args).
+
+error(Fmt, Args) ->
+    io:format("swarm ERROR " ++ Fmt ++ "\n", Args).
+
+warning(Fmt, Args) ->
+    io:format("swarm WARNING " ++ Fmt ++ "\n", Args).
+
+info(Fmt, Args) ->
+    io:format("swarm INFO " ++ Fmt ++ "\n", Args).
+
+debug(Fmt, Args) ->
+    io:format("swarm DEBUG " ++ Fmt ++ "\n", Args).
+

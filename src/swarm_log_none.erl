@@ -21,21 +21,21 @@
 %% WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 %%
 
-{application, swarm,
- [
-  {description, "Fast and simple acceptor pool"},
-  {vsn, "0.1.0"},
-  {registered, []},
-  {applications, [
-                  kernel,
-                  stdlib,
-                  inets,
-                  crypto,
-                  public_key,
-                  ssl
-                 ]},
-  {mod, { swarm_app, []}},
-  {env, [
-         {log_module, swarm_log_none}
-        ]}
- ]}.
+-module(swarm_log_none).
+-compile([export_all]).
+
+critical(_Fmt, _Args) ->
+    ok.
+
+error(_Fmt, _Args) ->
+    ok.
+
+warning(_Fmt, _Args) ->
+    ok.
+
+info(_Fmt, _Args) ->
+    ok.
+
+debug(_Fmt, _Args) ->
+    ok.
+
