@@ -62,6 +62,9 @@ loop(Name, LogModule, SpawnFun, Acceptors, Count) ->
             SpawnFun(),
             loop(Name, LogModule, SpawnFun, Acceptors, Count-1);
 
+        {'EXIT', _FromPid, normal} ->
+            loop(Name, LogModule, SpawnFun, Acceptors, Count);
+
         {'EXIT', FromPid, Reason} ->
             LogModule:debug("~s child pid ~p died with reason ~p", [Name, FromPid, Reason]),
             loop(Name, LogModule, SpawnFun, Acceptors, Count);
