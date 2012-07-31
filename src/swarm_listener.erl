@@ -49,28 +49,28 @@ run(Name, AcceptorCount, Transport, TransOpts, {M, F, A}) ->
 
     [SpawnFun() || _X <- lists:seq(1, AcceptorCount)],
 
-    loop(Name, LogModule, SpawnFun, AcceptorCount, 0).
+    loop(Name, LogModule, SpawnFun, AcceptorCount, 0, 0, 0).
 
 
-loop(Name, LogModule, SpawnFun, Acceptors, Count) ->
-    LogModule:debug("~s acceptors: ~p, count: ~p", [Name, Acceptors, Count]),
+loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount, ErrorCount) ->
+    LogModule:debug("~s configured acceptors: ~p, actual: ~p, running: ~p, errored: ~p", [Name, Acceptors, Count, RunningCount, ErrorCount]),
     receive
         listening ->
-            loop(Name, LogModule, SpawnFun, Acceptors, Count+1);
+            loop(Name, LogModule, SpawnFun, Acceptors, Count+1, RunningCount, ErrorCount);
 
         accepted ->
             SpawnFun(),
-            loop(Name, LogModule, SpawnFun, Acceptors, Count-1);
+            loop(Name, LogModule, SpawnFun, Acceptors, Count-1, RunningCount+1, ErrorCount);
 
         {'EXIT', _FromPid, normal} ->
-            loop(Name, LogModule, SpawnFun, Acceptors, Count);
+            loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount-1, ErrorCount);
 
         {'EXIT', FromPid, Reason} ->
             LogModule:debug("~s child pid ~p died with reason ~p", [Name, FromPid, Reason]),
-            loop(Name, LogModule, SpawnFun, Acceptors, Count);
+            loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount-1, ErrorCount+1);
 
         _ ->
-            loop(Name, LogModule, SpawnFun, Acceptors, Count)
+            loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount, ErrorCount)
     end.
 
 
