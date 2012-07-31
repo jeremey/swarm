@@ -76,9 +76,10 @@ loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount, ErrorCount) ->
 
 acceptor(LPid, Name, LSock, Transport, LogModule, {M, F, A}) ->
     LPid ! listening,
-    case Transport:accept(LSock) of
+    Accept = Transport:accept(LSock),
+    LPid ! accepted,
+    case Accept of
         {ok, S} ->
-            LPid ! accepted,
             erlang:apply(M, F, [S, Name, Transport, get_info(Transport, S)] ++ A);
         {error, closed} ->
             LogModule:debug("~s Transport:accept received {error, closed}", [Name]),
