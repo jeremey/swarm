@@ -42,9 +42,12 @@ run(Name, AcceptorCount, Transport, TransOpts, {M, F, A}) ->
 
     {ok, LSock} = Transport:listen(TransOpts),
 
+    eprof:start(),
+    eprof:log("/tmp/eprof.log"),
+
     Self = self(),
     SpawnFun = fun() ->
-                       spawn(fun() -> acceptor(Self, Name, LSock, Transport, LogModule, {M, F, A}) end)
+                       spawn_link(fun() -> acceptor(Self, Name, LSock, Transport, LogModule, {M, F, A}) end)
                end,
 
     [SpawnFun() || _X <- lists:seq(1, AcceptorCount)],
@@ -60,14 +63,14 @@ loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount, ErrorCount) ->
 
         accepted ->
             SpawnFun(),
-            loop(Name, LogModule, SpawnFun, Acceptors, Count-1, RunningCount, ErrorCount);
+            loop(Name, LogModule, SpawnFun, Acceptors, Count-1, RunningCount+1, ErrorCount);
 
-        %% {'EXIT', _FromPid, normal} ->
-        %%     loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount-1, ErrorCount);
+        {'EXIT', _FromPid, normal} ->
+            loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount-1, ErrorCount);
 
-        %% {'EXIT', FromPid, Reason} ->
-        %%     LogModule:debug("~s child pid ~p died with reason ~p", [Name, FromPid, Reason]),
-        %%     loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount-1, ErrorCount+1);
+        {'EXIT', FromPid, Reason} ->
+            LogModule:debug("~s child pid ~p died with reason ~p", [Name, FromPid, Reason]),
+            loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount-1, ErrorCount+1);
 
         _ ->
             loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount, ErrorCount)
@@ -75,6 +78,7 @@ loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount, ErrorCount) ->
 
 
 acceptor(LPid, Name, LSock, Transport, LogModule, {M, F, A}) ->
+    eprof:start_profiling([self()]),
     LPid ! listening,
     Accept = Transport:accept(LSock),
     LPid ! accepted,
@@ -87,7 +91,10 @@ acceptor(LPid, Name, LSock, Transport, LogModule, {M, F, A}) ->
         Error ->
             LogModule:error("~s Transport:accept error ~p", [Name, Error]),
             Error
-    end.
+    end,
+    eprof:stop_profiling(),
+    eprof:analyze(),
+    ok.
 
 
 get_info(Transport, Socket) ->
