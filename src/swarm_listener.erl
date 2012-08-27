@@ -42,9 +42,6 @@ run(Name, AcceptorCount, Transport, TransOpts, {M, F, A}) ->
 
     {ok, LSock} = Transport:listen(TransOpts),
 
-    eprof:start(),
-    eprof:log("/tmp/eprof.log"),
-
     Self = self(),
     SpawnFun = fun() ->
                        spawn(fun() -> acceptor(Self, Name, LSock, Transport, LogModule, {M, F, A}) end)
@@ -78,7 +75,7 @@ loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount, ErrorCount) ->
 
 
 acceptor(LPid, Name, LSock, Transport, LogModule, {M, F, A}) ->
-    eprof:start_profiling([self()]),
+    %% eprof:start_profiling([self()]),
     LPid ! listening,
     Accept = Transport:accept(LSock),
     LPid ! accepted,
@@ -92,8 +89,8 @@ acceptor(LPid, Name, LSock, Transport, LogModule, {M, F, A}) ->
             LogModule:error("~s Transport:accept error ~p", [Name, Error]),
             Error
     end,
-    eprof:stop_profiling(),
-    eprof:analyze(),
+    %% eprof:stop_profiling(),
+    %% eprof:analyze(),
     ok.
 
 
