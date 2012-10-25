@@ -28,7 +28,7 @@
 -export([connect/4, listen/1, accept/1, accept/2]).
 -export([recv/3, send/2, close/1]).
 -export([setopts/2, controlling_process/2, peername/1, sockname/1]).
--export([subject_name/1, dn/1]).
+-export([subject_name/1, dn/1, type/0]).
 
 -include("../include/swarm.hrl").
 
@@ -81,3 +81,7 @@ subject_name(_Socket) ->
 
 dn(_Socket) ->
     #swarm_dn{}.
+
+type() ->
+    tcp.
+
