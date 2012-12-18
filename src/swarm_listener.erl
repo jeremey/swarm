@@ -60,7 +60,7 @@ loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount, ErrorCount) ->
 
         accepted ->
             SpawnFun(),
-            loop(Name, LogModule, SpawnFun, Acceptors, Count-1, RunningCount, ErrorCount);
+            loop(Name, LogModule, SpawnFun, Acceptors, Count-1, RunningCount+1, ErrorCount);
 
         {'EXIT', FromPid, normal} ->
             LogModule:debug("~s child pid ~p died normally", [Name, FromPid]),                % temporarily info
