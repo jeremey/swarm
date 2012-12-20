@@ -24,6 +24,6 @@
 -ifndef(swarm_log_hrl).
 -define(swarm_log_hrl, 1).
 
--define(LOG(Module, Level, Fmt, Args), Module:log(Level, Fmt, Args)).
+-define(LOG(Module, Level, Fmt, Args), Module:log(?MODULE, ?LINE, Level, Fmt, Args)).
 
 -endif.
