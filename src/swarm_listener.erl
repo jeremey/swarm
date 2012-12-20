@@ -53,7 +53,7 @@ run(Name, AcceptorCount, Transport, TransOpts, {M, F, A}) ->
 
 
 loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount, ErrorCount) ->
-    LogModule:debug("~s configured acceptors: ~p, actual: ~p, running: ~p, errored: ~p", [Name, Acceptors, Count, RunningCount, ErrorCount]),
+    LOG(LogModule, debug, "~s configured acceptors: ~p, actual: ~p, running: ~p, errored: ~p", [Name, Acceptors, Count, RunningCount, ErrorCount]),
     receive
         listening ->
             loop(Name, LogModule, SpawnFun, Acceptors, Count+1, RunningCount, ErrorCount);
@@ -63,11 +63,11 @@ loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount, ErrorCount) ->
             loop(Name, LogModule, SpawnFun, Acceptors, Count-1, RunningCount+1, ErrorCount);
 
         {'EXIT', FromPid, normal} ->
-            LogModule:debug("~s child pid ~p died normally", [Name, FromPid]),                % temporarily info
+            LOG(LogModule, debug, "~s child pid ~p died normally", [Name, FromPid]),                % temporarily info
             loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount-1, ErrorCount);
 
         {'EXIT', FromPid, Reason} ->
-            LogModule:info("~s child pid ~p died with reason ~p", [Name, FromPid, Reason]),  % temporarily info
+            LOG(LogModule, info, "~s child pid ~p died with reason ~p", [Name, FromPid, Reason]),  % temporarily info
             loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount-1, ErrorCount+1);
 
         _ ->
@@ -84,10 +84,10 @@ acceptor(LPid, Name, LSock, Transport, LogModule, {M, F, A}) ->
         {ok, S} ->
             erlang:apply(M, F, [S, Name, Transport, get_info(Transport, S)] ++ A);
         {error, closed} ->
-            LogModule:debug("~s Transport:accept received {error, closed}", [Name]),
+            LOG(LogModule, debug, "~s Transport:accept received {error, closed}", [Name]),
             ok;
         Error ->
-            LogModule:error("~s Transport:accept error ~p", [Name, Error]),
+            LOG(LogModule, error, "~s Transport:accept error ~p", [Name, Error]),
             Error
     end,
     %% eprof:stop_profiling(),
