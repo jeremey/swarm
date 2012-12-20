@@ -26,6 +26,7 @@
 -export([start_link/5]).
 
 -include("../include/swarm.hrl").
+-include("../include/swarm_log.hrl").
 
 start_link(Name, AcceptorCount, Transport, TransOpts, {M, F, A}) ->
     Pid = spawn_link(fun() ->
@@ -53,7 +54,7 @@ run(Name, AcceptorCount, Transport, TransOpts, {M, F, A}) ->
 
 
 loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount, ErrorCount) ->
-    LogModule:debug("~s configured acceptors: ~p, actual: ~p, running: ~p, errored: ~p", [Name, Acceptors, Count, RunningCount, ErrorCount]),
+    ?LOG(LogModule, debug, "~s configured acceptors: ~p, actual: ~p, running: ~p, errored: ~p", [Name, Acceptors, Count, RunningCount, ErrorCount]),
     receive
         listening ->
             loop(Name, LogModule, SpawnFun, Acceptors, Count+1, RunningCount, ErrorCount);
@@ -62,11 +63,12 @@ loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount, ErrorCount) ->
             SpawnFun(),
             loop(Name, LogModule, SpawnFun, Acceptors, Count-1, RunningCount+1, ErrorCount);
 
-        {'EXIT', _FromPid, normal} ->
+        {'EXIT', FromPid, normal} ->
+            ?LOG(LogModule, debug, "~s child pid ~p died normally", [Name, FromPid]),                % temporarily info
             loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount-1, ErrorCount);
 
         {'EXIT', FromPid, Reason} ->
-            LogModule:debug("~s child pid ~p died with reason ~p", [Name, FromPid, Reason]),
+            ?LOG(LogModule, info, "~s child pid ~p died with reason ~p", [Name, FromPid, Reason]),  % temporarily info
             loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount-1, ErrorCount+1);
 
         _ ->
@@ -75,6 +77,7 @@ loop(Name, LogModule, SpawnFun, Acceptors, Count, RunningCount, ErrorCount) ->
 
 
 acceptor(LPid, Name, LSock, Transport, LogModule, {M, F, A}) ->
+    %% eprof:start_profiling([self()]),
     LPid ! listening,
     Accept = Transport:accept(LSock),
     LPid ! accepted,
@@ -82,12 +85,15 @@ acceptor(LPid, Name, LSock, Transport, LogModule, {M, F, A}) ->
         {ok, S} ->
             erlang:apply(M, F, [S, Name, Transport, get_info(Transport, S)] ++ A);
         {error, closed} ->
-            LogModule:debug("~s Transport:accept received {error, closed}", [Name]),
+            ?LOG(LogModule, debug, "~s Transport:accept received {error, closed}", [Name]),
             ok;
         Error ->
-            LogModule:error("~s Transport:accept error ~p", [Name, Error]),
+            ?LOG(LogModule, error, "~s Transport:accept error ~p", [Name, Error]),
             Error
-    end.
+    end,
+    %% eprof:stop_profiling(),
+    %% eprof:analyze(),
+    ok.
 
 
 get_info(Transport, Socket) ->
